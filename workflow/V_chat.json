@@ -1,0 +1,604 @@
+{
+  "name": "V_chat",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        32
+      ],
+      "id": "e94e58b3-652b-4036-b97d-e8b8ba8aa382",
+      "name": "Telegram Trigger",
+      "webhookId": "4b443843-2ceb-41d4-92ed-109d284433e3",
+      "credentials": {
+        "telegramApi": {
+          "id": "iYhzayF4LzcjYoBr",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.message.text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "Extract vehicle search details from the user message and return ONLY a JSON object with these fields (omit any field not mentioned):\n{\n  \"category\": \"suvs | cars | vans | motorcycles | lorries | buses | tractors\",\n  \"brand\": \"toyota | honda | nissan | etc\",\n  \"model\": \"prado | axio | vezel | etc\",\n  \"location\": \"city name if mentioned\",\n  \"year_min\": number,\n  \"year_max\": number,\n  \"fuel_type\": \"diesel | petrol | hybrid | electric\",\n  \"min_price\": number in LKR,\n  \"max_price\": number in LKR,\n  \"max_mileage\": number in km,\n  \"condition\": \"brand-new | used\"\n}\n\nImportant conversions:\n- \"under 35 million\" → max_price: 35000000\n- \"under 50000 miles\" → max_mileage: 50000  \n- \"brand new\" → condition: \"brand-new\"\n- \"2016 to 2020\" → year_min: 2016, year_max: 2020\n\n\nImportant - do not use any tools and Output ONLY the JSON object. Do not include conversational text, markdown formatting like ```json, or comments within the JSON",
+          "autoSaveHighlightedData": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "cafefb1a-03ff-45e3-90f3-30e2e8368030",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        -48
+      ],
+      "id": "288c1abb-77a1-47dd-a50b-e0eb33994ad8",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "0l1rqAFO1ImHZc88",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "li.v-card:not(.promoted) .v-card-body a",
+              "returnArray": true
+            },
+            {
+              "key": "Link",
+              "cssSelector": "li.v-card:not(.promoted) .v-card-img a",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "Price",
+              "cssSelector": "li.v-card:not(.promoted) .v-card-price",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        -168
+      ],
+      "id": "5e24d23d-db64-4712-9d93-7a7457ae7642",
+      "name": "HTML",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return { data: $json.body };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        -168
+      ],
+      "id": "b9479c87-8b42-450d-94b1-59cc9bf4c077",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        128
+      ],
+      "id": "8c1d4ed0-b07b-401b-8870-abbb81cb13ec",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.message }}\n\n🔍 Riyasewana: {{ $('Code for Riyasewana').item.json.url }}\n🔍 ikman: {{ $('Code fro Ikman').item.json.url }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2368,
+        128
+      ],
+      "id": "ed5b14e1-1778-44a1-8eff-c4c5f2b9d5b8",
+      "name": "Send a text message",
+      "webhookId": "a56ee857-fcce-46a0-a869-a6c7ebe7e028",
+      "credentials": {
+        "telegramApi": {
+          "id": "iYhzayF4LzcjYoBr",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d783abf0-b99a-4261-b125-22f0878cfac1",
+              "leftValue": "={{ $json.hasResults }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1920,
+        32
+      ],
+      "id": "bfb5ef05-09fc-49b4-a13c-72e40df23a63",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "❌ I couldn't find any vehicles matching those specific details on Riyasewana right now. Try a broader price range!\"",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2144,
+        -64
+      ],
+      "id": "7472600f-b360-413f-bb0f-3d1c2cb2f314",
+      "name": "Send a text message1",
+      "webhookId": "a77dac56-14e7-4736-b705-ad6a90a22ce0",
+      "credentials": {
+        "telegramApi": {
+          "id": "iYhzayF4LzcjYoBr",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return { data: $json.body };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        232
+      ],
+      "id": "8fd17275-91c1-4c4a-8afc-f0d1fd795486",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "title",
+              "cssSelector": "li[class*=\"normal--\"] h2",
+              "returnArray": true
+            },
+            {
+              "key": "Link",
+              "cssSelector": "li[class*=\"normal--\"] a[class*=\"card-link--\"]",
+              "returnValue": "attribute",
+              "attribute": "href",
+              "returnArray": true
+            },
+            {
+              "key": "Price",
+              "cssSelector": "li[class*=\"normal--\"] div[class*=\"price--\"]",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        1248,
+        232
+      ],
+      "id": "72d32521-7d05-4498-ad2f-a21244bac60a",
+      "name": "HTML1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1472,
+        32
+      ],
+      "id": "96e97dcb-1e5f-4342-952e-1ad8f16cdeaa",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\nconst jsonMatch = typeof raw === 'string' ? raw.match(/\\{[\\s\\S]*\\}/) : null;\nconst data = jsonMatch ? JSON.parse(jsonMatch[0]) : raw;\n\nlet segments = [];\n\n// 1. Vehicle category (SUVs, vans, motorcycles, etc.)\nif (data.category) {\n  segments.push(data.category.toLowerCase().replace(/\\s+/g, '-'));\n}\n\n// 2. Brand (toyota, honda, etc.)\nif (data.brand) {\n  segments.push(data.brand.toLowerCase().replace(/\\s+/g, '-'));\n}\n\n// 3. Model (prado, axio, etc.)\nif (data.model) {\n  segments.push(data.model.toLowerCase().replace(/\\s+/g, '-'));\n}\n\n// 4. Location\nif (data.location) {\n  segments.push(data.location.toLowerCase().replace(/\\s+/g, '-'));\n}\n\n// 5. Year range (e.g. 2016-2020)\nif (data.year_min || data.year_max) {\n  const yMin = data.year_min || 2000;\n  const yMax = data.year_max || new Date().getFullYear();\n  segments.push(`${yMin}-${yMax}`);\n}\n\n// 6. Fuel type (diesel, petrol, hybrid, electric)\nif (data.fuel_type) {\n  segments.push(data.fuel_type.toLowerCase());\n}\n\n// 7. Price range\nconst minPrice = data.min_price || 0;\nconst maxPrice = data.max_price || 200000000;\nsegments.push(`price-${minPrice}-${maxPrice}`);\n\n// 8. Mileage\nif (data.max_mileage) {\n  segments.push(`mileage-0-${data.max_mileage}`);\n}\n\nif (data.condition && \n    data.condition !== null && \n    data.condition !== '' &&\n    data.condition !== 'null' &&\n    data.condition !== 'undefined') {\n  const condition = data.condition.toLowerCase().trim();\n  if (condition === 'unregistered' || condition === 'brand-new' || condition === 'new') {\n    segments.push('unregistered');\n  } else if (condition === 'registered' || condition === 'used') {\n    segments.push('registered');\n  }\n}\nconst url = \"https://riyasewana.com/search/\" + segments.join('/');\n\nreturn { url: url };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        -160
+      ],
+      "id": "ad7c9dbe-60fa-45bd-934a-4cd0ddc31be7",
+      "name": "Code for Riyasewana"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $json.output;\nconst jsonMatch = typeof raw === 'string' ? raw.match(/\\{[\\s\\S]*\\}/) : null;\nconst data = jsonMatch ? JSON.parse(jsonMatch[0]) : raw;\n\nconst categoryMap = {\n  'car': 'cars', 'cars': 'cars',\n  'suv': 'cars', 'suvs': 'cars',\n  'van': 'vans', 'vans': 'vans',\n  'motorcycle': 'motorbikes', 'motorbikes': 'motorbikes',\n  'truck': 'trucks', 'lorry': 'trucks',\n  'bus': 'buses'\n};\n\nconst cat = data.category ? (categoryMap[data.category.toLowerCase()] || 'cars') : 'cars';\nlet url = `https://ikman.lk/en/ads/sri-lanka/${cat}`;\n\nif (data.brand) {\n  url += \"/\" + data.brand.toLowerCase().replace(/\\s+/g, '-');\n}\nif (data.model) {\n  url += \"/\" + data.model.toLowerCase().replace(/\\s+/g, '-');\n}\n\nconst params = [];\nif (data.min_price) params.push(`price_min=${data.min_price}`);\nif (data.max_price) params.push(`price_max=${data.max_price}`);\nif (data.max_mileage) params.push(`mileage_max=${data.max_mileage}`);\nif (data.fuel_type) params.push(`fuel_type=${data.fuel_type.toLowerCase()}`);\nif (data.condition) {\n  const c = data.condition.toLowerCase();\n  if (c.includes('new') || c.includes('unregistered')) params.push('condition=brand-new');\n  else if (c.includes('used') || c.includes('registered')) params.push('condition=used');\n}\n\nparams.push('sort_by=relevance');\nurl += \"?\" + params.join(\"&\");\n\nreturn { url: url };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        576,
+        240
+      ],
+      "id": "755dbafb-b017-41bf-a3af-1c9398e377fd",
+      "name": "Code fro Ikman"
+    },
+    {
+      "parameters": {
+        "operation": "scrape-js",
+        "url": "={{ $json.url }}",
+        "waitForSelector": "h2"
+      },
+      "type": "n8n-nodes-scrapeninja.scrapeNinja",
+      "typeVersion": 1,
+      "position": [
+        800,
+        -168
+      ],
+      "id": "ae011515-d405-49f3-8fdb-6b077f802d2a",
+      "name": "ScrapeNinja RIyasewana",
+      "credentials": {
+        "scrapeNinjaApi": {
+          "id": "Bz9M2mxBhJjOJIlW",
+          "name": "ScrapeNinja account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "scrape-js",
+        "url": "={{ $json.url }}",
+        "waitForSelector": "h2"
+      },
+      "type": "n8n-nodes-scrapeninja.scrapeNinja",
+      "typeVersion": 1,
+      "position": [
+        800,
+        232
+      ],
+      "id": "44fbd1ba-3cc2-4b14-8a95-c23e58bb76df",
+      "name": "ScrapeNinja Ikman",
+      "credentials": {
+        "scrapeNinjaApi": {
+          "id": "Bz9M2mxBhJjOJIlW",
+          "name": "ScrapeNinja account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n{{ $json.message.text }}",
+        "options": {
+          "systemMessage": "Return ONLY a raw JSON object. No explanation, no markdown, no code blocks.\n\nExtract vehicle search details and return slugs for ikman.lk URL format:\n\n{\n  \"category\": \"cars | vans | motorbikes-scooters | lorries | buses | three-wheelers\",\n  \"brand\": \"toyota | honda | bmw | mitsubishi | lexus | suzuki | mazda | \n            kia | hyundai | nissan | mercedes-benz\",\n  \"model\": \"exact ikman slug from mapping below\",\n  \"location\": \"city name if mentioned\",\n  \"year_min\": number,\n  \"year_max\": number,\n  \"fuel_type\": \"diesel | petrol | hybrid | electric\",\n  \"min_price\": number in LKR,\n  \"max_price\": number in LKR,\n  \"max_mileage\": number in km,\n  \"condition\": \"brand-new | used\"\n}\n\nikman model slug mapping:\n\nTOYOTA: prado → land-cruiser-prado | axio → axio | raize → raize | \nvitz → vitz | aqua → aqua | hilux → hilux | roomy → roomy | \nfortuner → fortuner | harrier → harrier | chr → chr | \nland cruiser → land-cruiser | surf → hilux-surf | \nhiace/kdh → hiace | corolla → corolla | allion → allion | \npremio → premio | yaris → yaris | voxy → voxy | noah → noah\n\nHONDA: vezel → vezel | crv → crv | civic → civic | fit → fit | \ncity → city | freed → freed | nbox → n-box | \nfit shuttle → fit-shuttle | grace → grace | zrv → zrv-z\n\nBMW: x1 → x1 | x5 → x5 | 318i → 318i | 520d → 520d | \n523i → 523i | 218i → 218i | 220i → 220i | \n530e → 530e | 525i → 525i | 740le → 740le\n\nMITSUBISHI: lancer → lancer | montero → montero | \noutlander → outlander | pajero → pajero | \nattrage → attrage | xpander → xpander | \nek wagon → ek-wagon | eclipse cross → eclipse-cross | l200 → l200\n\nLEXUS: lx600 → lx600 | gx550 → gx550 | rx350 → rx350 | \nrx450h → rz450h | lbx → lbx | lm500h → lm500h | \nhs250h → hs250h | ls500h → ls500h | ls600h → ls600h\n\nSUZUKI: wagon r → wagonr | alto → alto | swift → swift | \nspacia → spacia | fronx → fronx | hustler → hustler | \ncelerio → celerio | stingray → wagonr-stingray | \nwagon r fx → wagonr-fx | jimny → jimny\n\nMAZDA: familia → familia | mazda 3 → 3 | demio → demio | \naxela → axela | cx-5 → cx-5 | mazda 6 → 6 | \ncarol → carol | flair → flair | tribute → tribute\n\nKIA: sonet → sonet | seltos → seltos | sportage → sportage | \nsorento → sorento | picanto → picanto | rio → rio | \nstonic → stonic | carens → carens | syros → syros\n\nHYUNDAI: venue → venue | tucson → tucson | santa fe → santa-fe | \nelantra → elantra | accent → accent | sonata → sonata | \neon → eon | matrix → matrix | alcazar → alcazar\n\nNISSAN: sunny → sunny | x-trail → x-trail | dayz → dayz | \nleaf → leaf | march → march | almera → almera | \nroox → roox | bluebird → bluebird | magnite → magnite | \nsylphy → sylphy | serena → serena\n\nMERCEDES-BENZ: c200 → c200 | c180 → c180 | e200 → e200 | \ne300 → e300 | e350 → e350 | glb → glb | \ncla180 → cla-180 | cla200 → cla-200 | \na180 → a180 | s400 → s400\n\nConversions:\n- \"under 35 million\" → max_price: 35000000\n- \"under 50000 km/miles\" → max_mileage: 50000\n- \"brand new\" / \"unregistered\" → condition: \"brand-new\"\n- \"used\" / \"second hand\" / \"registered\" → condition: \"used\"\n\nimportant do no use any tools"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        224,
+        232
+      ],
+      "id": "87bb6c92-7a7f-45f0-88e6-24c3a8147283",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        224,
+        416
+      ],
+      "id": "30437a70-99f4-417b-a1ed-1f1bbcfdd610",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "0l1rqAFO1ImHZc88",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst riya = items[0].json;\nconst ikman = items[1] ? items[1].json : null;\n\n// Riyasewana listings\nconst riyaTitles = Array.isArray(riya.title) ? riya.title : [];\nconst riyaLinks = Array.isArray(riya.Link) ? riya.Link : [];\nconst riyaPrices = Array.isArray(riya.Price) ? riya.Price : [];\n\nconst riyaText = riyaTitles.length > 0\n  ? riyaTitles.slice(0,5).map((item, i) => {\n      const name = typeof item === 'object' ? item.title : item;\n      const link = typeof item === 'object' ? item.href : (riyaLinks[i] || \"\");\n      const price = String(riyaPrices[i] || \"Price not listed\");\n      return `${i+1}. ${name}\\n💰 ${price}\\n🔗 ${link}`;\n    }).join(\"\\n\\n\")\n  : \"No results found on Riyasewana\";\n\n// ikman listings\nlet ikmanText = \"No results found on ikman\";\nif (ikman) {\n  const ikmanTitles = Array.isArray(ikman.title) ? ikman.title : [];\n  const ikmanLinks = Array.isArray(ikman.Link) ? ikman.Link : [];\n  const ikmanPrices = Array.isArray(ikman.Price) ? ikman.Price : [];\n\n  const seen = new Set();\n  const filtered = [];\n\n  for (let i = 0; i < ikmanTitles.length; i++) {\n    const item = ikmanTitles[i];\n    const name = typeof item === 'object' ? item.title : item;\n    let link = ikmanLinks[i] || \"\";\n    if (typeof link === 'object') link = link.href || \"\";\n    \n    if (link.includes('/boost-ad')) continue;\n    if (!link) continue;\n    if (!link.startsWith('http')) link = 'https://ikman.lk' + link;\n    if (seen.has(link)) continue;\n    seen.add(link);\n\n    const price = String(ikmanPrices[i] || \"Price not listed\");\n    filtered.push({ name, link, price });\n  }\n\n  if (filtered.length > 0) {\n    ikmanText = filtered.slice(0,5).map((item, i) =>\n      `${i+1}. ${item.name}\\n💰 ${item.price}\\n🔗 ${item.link}`\n    ).join(\"\\n\\n\");\n  }\n}\n\nreturn {\n  message: `🚗 Results from Riyasewana:\\n\\n${riyaText}\\n\\n━━━━━━━━━━━━━━━\\n\\n🏪 Results from ikman:\\n\\n${ikmanText}`,\n  hasResults: riyaTitles.length > 0 || (ikman && Array.isArray(ikman.title) && ikman.title.length > 0)\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        32
+      ],
+      "id": "f617f4d8-dd73-494d-a7b6-12c223b271b7",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code for Riyasewana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "HTML1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    },
+    "HTML1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code for Riyasewana": {
+      "main": [
+        [
+          {
+            "node": "ScrapeNinja RIyasewana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code fro Ikman": {
+      "main": [
+        [
+          {
+            "node": "ScrapeNinja Ikman",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapeNinja RIyasewana": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScrapeNinja Ikman": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code fro Ikman",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e07e9c52-0575-48cd-842a-d23e207c7cb3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9a9051de8b0af952997ab69b827d3c9f915e410eb609d822625a71048c4d3504"
+  },
+  "id": "mSx1crorGFyVhiiy",
+  "tags": []
+}
